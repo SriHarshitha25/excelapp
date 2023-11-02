@@ -4,6 +4,11 @@ from tkinter import ttk
 from tkinter import messagebox
 import json
 from tkcalendar import *
+from tkcalendar import DateEntry
+import openpyxl, xlrd
+from openpyxl import Workbook
+import pathlib
+import xlwt
 
 class App:
     def __init__(self, root):
@@ -11,6 +16,11 @@ class App:
         self.root.geometry("800x800")
         self.root.title('Store Details')
 
+        #date widget
+        sel = tk.StringVar()
+        ttk.Label(root, text="Requirement Date:").grid(row=3, column=0, padx=10, pady=10)
+        cal = DateEntry(root, selectmode = 'day', textvariable=sel)
+        cal.grid(row=3,column=1,padx=15)
 
 
         with open("data.json","r") as file:
@@ -52,7 +62,7 @@ class App:
                                        bg='LightGreen',
                                        activebackground='White',
                                        command=self.print_selected)
-        self.submit_button.grid(row=3, column=1, pady=10)
+        self.submit_button.grid(row=4, column=1, pady=10)
 
         #create clear button
         #self.clear_button = tk.Button(root, text="Clear",
