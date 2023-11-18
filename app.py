@@ -153,12 +153,31 @@ class StoreApp:
     ###
     # Requirements logs window
     def display_logs(self):
-        self.workbook = load_workbook(self.storingfile_path)
-    
+
+        workbook = load_workbook('C:\\Users\\Chinnu\\Downloads\\exampleapp//storingfile.xlsx')
         # Select the specific sheet within the workbook
-        self.sheet = self.workbook.active
-        label = tk.Label(root, text=self.sheet)
-        label.pack()
+        sheet = workbook.active
+
+        # Create a new Tkinter window for displaying the table
+        table_window = tk.Toplevel(self.root)
+        table_window.title('Requirements Logs')
+
+        # Create a Treeview (table) widget
+        tree = ttk.Treeview(table_window)
+        # Get headers (assuming they are in the first row of the sheet)
+        headers = [cell.value for cell in sheet[1]]
+        tree["columns"] = headers
+        tree["show"] = "headings"
+        # Add headers to the table
+        for header in headers:
+            tree.heading(header, text=header)
+    
+        # Insert data into the table
+        for row in sheet.iter_rows(min_row=2, values_only=True):
+            tree.insert("", "end", values=row)
+    
+        # Display the table
+        tree.pack(expand=True, fill=tk.BOTH)
         ###
         ##
         #
