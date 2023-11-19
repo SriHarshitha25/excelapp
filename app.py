@@ -11,12 +11,12 @@ class StoreApp:
         self.root.title('Store Supplies')
 
         # Load the xlsx file, then store the value of each column in the "elements" list
-        self.file_path = r"C:\Users\Chinnu\Downloads\exampleapp/testdata.xlsx"
+        self.file_path = r"C:/Users/vyoma/Downloads/excelapp-main (1)/excelapp-main/testdata.xlsx"
 
         if os.path.exists(self.file_path):
             self.wb = load_workbook(filename=self.file_path)
             self.ws = self.wb['Sheet1']
-            self.storingfile_path = r"C:\Users\Chinnu\Downloads\exampleapp/storingfile.xlsx"
+            self.storingfile_path = r"C:/Users/vyoma/Downloads/excelapp-main (1)/excelapp-main/storingfile.xlsx"
 
             try:
                 self.wBook = load_workbook(self.storingfile_path)
@@ -122,15 +122,9 @@ class StoreApp:
         status_button = ttk.Button(bf1_dialog, text="Material Status", command=self.display_material_status)
         status_button.pack(pady=10)
 
-        #
-        ##
-        ###
         # Requirements logs Button
-        logs_button = ttk.Button(bf1_dialog, text="Requirement logs", command = self.display_logs)
+        logs_button = ttk.Button(bf1_dialog, text="Requirement logs", command=self.display_logs)
         logs_button.pack(pady=10)
-        ###
-        ##
-        #
 
     def display_material_status(self):
         # Create a new dialog to display material status
@@ -148,13 +142,9 @@ class StoreApp:
                 data_label = ttk.Label(status_dialog, text=value)
                 data_label.grid(row=i, column=j)
 
-    #
-    ##
-    ###
-    # Requirements logs window
     def display_logs(self):
 
-        workbook = load_workbook('C:\\Users\\Chinnu\\Downloads\\exampleapp//storingfile.xlsx')
+        workbook = load_workbook('C:/Users/vyoma/Downloads/excelapp-main (1)/excelapp-main/storingfile.xlsx')
         # Select the specific sheet within the workbook
         sheet = workbook.active
 
@@ -178,9 +168,6 @@ class StoreApp:
     
         # Display the table
         tree.pack(expand=True, fill=tk.BOTH)
-        ###
-        ##
-        #
 
     def handle_action(self, action, quantity):
         selected_material = self.combodata.get()
@@ -199,29 +186,18 @@ class StoreApp:
             self.sheet.append([current_time, selected_material, material_code, quantity])
             self.wBook.save(self.storingfile_path)
             
-            #
-            ##
-            ###
             # Update the main sheet with quantity change
             main_sheet = self.wb.active
             for row in range(2, main_sheet.max_row + 1):
                 material = main_sheet.cell(row=row, column=1).value
-                material_data = [item for item in self.elements if item[0] == selected_material][0]
-                material_code = material_data[1]
                 if material == selected_material:
-                    new_quantity = current_quantity + int(quantity)
                     main_sheet.cell(row=row, column=4, value=new_quantity)
-                    
                     print(f"Material Code: {material_code}, Current Quantity: {current_quantity}")
                     print(f"Material Code: {material_code}, Updated Quantity: {new_quantity}")
-                    current_quantity = new_quantity
-                    self.wb.save((self.file_path))
-                    self.wb.close
-                    print("loo1")
+                    self.wb.save(self.file_path)
                     break
-            ###
-            ##
-            #
+            # Update the elements list with the new quantity
+            material_data[3] = new_quantity
 
         elif action == "remove":
             material_data = [item for item in self.elements if item[0] == selected_material][0]
@@ -232,28 +208,18 @@ class StoreApp:
             self.sheet.append([current_time, selected_material, material_code, " ", quantity])
             self.wBook.save(self.storingfile_path)
 
-            #
-            ##
-            ###
             # Update the main sheet with quantity change
             main_sheet = self.wb.active
             for row in range(2, main_sheet.max_row + 1):
                 material = main_sheet.cell(row=row, column=1).value
-                material_data = [item for item in self.elements if item[0] == selected_material][0]
-                material_code = material_data[1]
                 if material == selected_material:
-                    new_quantity = current_quantity - int(quantity)
                     main_sheet.cell(row=row, column=4, value=new_quantity)
                     print(f"Material Code: {material_code}, Updated Quantity: {new_quantity}")
-                    current_quantity = new_quantity
-                    self.wb.save((self.file_path))
-                    self.wb.close
+                    self.wb.save(self.file_path)
                     break
-
-        current_quantity = new_quantity    
-        ###
-        ##
-        #  
+            
+            # Update the elements list with the new quantity
+            material_data[3] = new_quantity
 
 # Create the Tkinter window and run the app
 root = tk.Tk()
