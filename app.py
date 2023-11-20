@@ -1,10 +1,11 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk,filedialog
 from tkinter import messagebox
 from openpyxl import load_workbook
 import os
 from datetime import datetime
 import pandas as pd
+import json
 
 class ToolTip:
     def __init__(self, widget, text):
@@ -39,68 +40,98 @@ class StoreApp:
         self.root = root
         self.root.title('Store Supplies')
         
-        #finding the max window dimensions
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
-
-        # Set the main window size to fill the screen
         self.root.geometry(f"{screen_width}x{screen_height}")
 
-        # Load the xlsx file, then store the value of each column in the "elements" list
-        self.file_path = r"C:/Users/vyoma/Downloads/excelapp-main (1)/excelapp-main/testdata.xlsx"
+        self.data_file_path = None  # Initializing the data file path
+        self.log_file_path = None  # Initializing the log file path
 
-        if os.path.exists(self.file_path):
-            self.wb = load_workbook(filename=self.file_path)
-            self.ws = self.wb['Sheet1']
-            self.storingfile_path = r"C:/Users/vyoma/Downloads/excelapp-main (1)/excelapp-main/storingfile.xlsx"
+        self.load_stored_paths()
 
-            try:
-                self.wBook = load_workbook(self.storingfile_path)
-            except FileNotFoundError:
-                self.wBook = load_workbook()
-                self.wBook.save(self.storingfile_path)
+    def load_stored_paths(self):
+        try:
+            with open('stored_paths.json', 'r') as file:
+                stored_paths = json.load(file)
+                data_file_path = stored_paths.get("data_file_path")
+                log_file_path = stored_paths.get("log_file_path")
 
-            self.sheet = self.wBook.active
+            if data_file_path and log_file_path:
+                # Check if the stored paths point to existing files
+                if os.path.isfile(data_file_path) and os.path.isfile(log_file_path):
+                    self.data_file_path = data_file_path
+                    self.log_file_path = log_file_path
+                    self.show_bf1_dialogue()
+                    return  # Added to exit function after showing BF-1 dialogue
+                else:
+                    print("Stored paths do not point to existing files.")
 
-            self.m_row = 1
-            self.m_col = self.ws.max_column
-            self.MaterialDescription = self.ws['A2':'D227']  # Assuming material code and quantity are in columns B and D
+            # If paths are missing or invalid, show the initial dialogue
+            if not (self.data_file_path and self.log_file_path):
+                self.create_initial_dialogue()
+
+        except FileNotFoundError:
+            # If the stored_paths.json file is not found, show the initial dialogue
+            self.create_initial_dialogue()
+
+    def create_initial_dialogue(self):
+        select_files_button = tk.Button(
+            self.root,
+            text="Select Files",
+            command=self.select_files,
+            font=('Arial', 16),
+            bg='blue',
+            fg='white',
+            padx=20,
+            pady=10,
+            relief=tk.RAISED,
+            borderwidth=5
+        )
+        select_files_button.place(relx=0.5, rely=0.4, anchor="center")
+
+    def select_files(self):
+        data_file = filedialog.askopenfilename(title="Select Data File", filetypes=[("Excel files", "*.xlsx;*.xls")])
+        log_file = filedialog.askopenfilename(title="Select Log File", filetypes=[("Excel files", "*.xlsx;*.xls")])
+
+        if data_file and log_file:
+            self.update_paths(data_file, log_file)
+            self.show_bf1_dialogue()
+
+    def update_paths(self, new_data_path, new_log_path):
+        # Update stored paths with the new paths obtained
+        self.data_file_path = new_data_path
+        self.log_file_path = new_log_path
+
+        # Save the updated paths to the configuration file (stored_paths.json)
+        self.store_paths_to_file()
+    
+    def load_data_file(self):
+        if self.data_file_path and self.data_file_path.endswith(('.xlsx', '.xls')):
+            self.wb = load_workbook(filename=self.data_file_path)
+            self.ws = self.wb.active
             self.elements = []
 
-            # to get the list of column values
-            for cell in self.MaterialDescription:
-                row_data = [x.value for x in cell]
-                self.elements.append(row_data)
-                print(row_data)
-
-            # Create and style the heading
-            heading_label = ttk.Label(root, text="Store Supplies", font=('Arial', 16))
-            heading_label.pack(pady=20)
-
-            # Create a button to display the Excel data with custom styling
-            display_button = tk.Button(
-                self.root,
-                text='Blast Furnace-1',
-                command=self.show_bf1_options,
-                font=('Arial', 16),  # Change font and size
-                bg='blue',  # Background color
-                fg='white',  # Foreground (text) color
-                padx=20,  # Horizontal padding
-                pady=10,  # Vertical padding
-                relief=tk.RAISED,  # Border style
-                borderwidth=5  # Border width
-            )
-            display_button.place(relx=0.5, rely=0.45, anchor="center")
-
-            #calling the tooltip/button description
-            bf1tooltip_text = "Click to enter Blast Furnace-1 options"
-            ToolTip(display_button, bf1tooltip_text)
-
-            # Initialize combobox
-            self.combodata = None
-
+            for row in self.ws.iter_rows(min_row=2, max_row=227, min_col=1, max_col=4, values_only=True):
+                self.elements.append(row)
+                print(row)
         else:
-            print("File not found at the specified path.")
+            print("Invalid data file format or no file selected.")
+
+    def read_log_file(self):
+        if self.log_file_path and self.log_file_path.endswith(('.xlsx', '.xls')):
+            self.log_data = pd.read_excel(self.log_file_path)
+            # Process log file data as needed
+            print(self.log_data)
+        else:
+            print("Invalid log file format or no file selected.")
+
+    def display_logs(self, storingfile_path):
+        if storingfile_path and storingfile_path.endswith(('.xlsx', '.xls')):
+            excel_data = pd.read_excel(storingfile_path)
+            # Process excel_data as needed
+            print(excel_data)
+        else:
+            print("Invalid file format or no file selected.")
 
     def search_selected_material(self, event=None):
         if self.combodata:
@@ -115,6 +146,48 @@ class StoreApp:
                         data.append(item[0])
 
                 self.combodata['values'] = data
+
+    def store_paths_to_file(self):
+        stored_paths = {
+            "data_file_path": self.data_file_path,
+            "log_file_path": self.log_file_path
+        }
+        with open('stored_paths.json', 'w') as file:
+            json.dump(stored_paths, file)
+
+    def show_bf1_dialogue(self):
+        self.root.withdraw()
+        bf1_dialog = tk.Toplevel(self.root)
+        bf1_dialog.title("Store Supplies")
+
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        bf1_dialog.geometry(f"{screen_width}x{screen_height}")
+
+        heading_label = ttk.Label(bf1_dialog, text="Store Supplies", font=('Arial', 16))
+        heading_label.pack(pady=20)
+
+        display_button = tk.Button(
+            bf1_dialog,  # Change this line to use bf1_dialog instead of self.root
+            text='Blast Furnace-1',
+            command=self.show_bf1_options,
+            font=('Arial', 16),
+            bg='blue',
+            fg='white',
+            padx=20,
+            pady=10,
+            relief=tk.RAISED,
+            borderwidth=5
+        )
+        display_button.place(relx=0.5, rely=0.45, anchor="center")
+
+
+            #calling the tooltip/button description
+        bf1tooltip_text = "Click to enter Blast Furnace-1 options"
+        ToolTip(display_button, bf1tooltip_text)
+
+            # Initialize combobox
+        self.combodata = None
 
     
     def show_bf1_options(self):
@@ -135,6 +208,8 @@ class StoreApp:
 
         # Set the main window size to fill the screen
         bf1_dialog.geometry(f"{screen_width}x{screen_height}")
+
+        self.load_data_file()
 
         # Create a button to Add materials
         add_button = tk.Button(
@@ -318,7 +393,7 @@ class StoreApp:
         table_window.title('Store Material Status')
 
         # Read Excel file and create DataFrame
-        excel_data = pd.read_excel(self.file_path)  # Replace 'your_excel_file.xlsx' with your file name
+        excel_data = pd.read_excel(self.data_file_path)  # Replace 'your_excel_file.xlsx' with your file name
         self.df = pd.DataFrame(excel_data)
 
         # Create a frame to hold the search bar
@@ -381,7 +456,7 @@ class StoreApp:
     def display_logs(self):
 
         # Read Excel file and create DataFrame
-        excel_data = pd.read_excel(self.storingfile_path)  # Replace 'your_excel_file.xlsx' with your file name
+        excel_data = pd.read_excel(self.log_file_path)  # Replace 'your_excel_file.xlsx' with your file name
         self.df = pd.DataFrame(excel_data)
 
         # Create a new Tkinter window for displaying the table
