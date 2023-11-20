@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 from openpyxl import load_workbook
 import os
 from datetime import datetime
@@ -309,7 +310,7 @@ class StoreApp:
 
         # Button to confirm removing materials
         confirm_button = ttk.Button(remove_dialog, text="Confirm", command=lambda: self.handle_action("remove", entry_quantity.get()))
-        confirm_button.pack(pady=20, anchor=tk.CENTER)
+        confirm_button.pack(pady=20, anchor=tk.CENTER)   
 
 
     def display_material_status(self):
@@ -404,6 +405,7 @@ class StoreApp:
                     break
             # Update the elements list with the new quantity
             material_data[3] = new_quantity
+            messagebox.showinfo("Data Submitted", f"Material: {selected_material}\nQuantity: {quantity}\nhas been added to the store.")
 
         elif action == "remove":
             material_data = [item for item in self.elements if item[0] == selected_material][0]
@@ -426,6 +428,8 @@ class StoreApp:
             
             # Update the elements list with the new quantity
             material_data[3] = new_quantity
+            messagebox.showinfo("Data Submitted", f"Material: {selected_material}\nQuantity: {quantity}\nhas been removed from store.")
+
 
 # Create the Tkinter window and run the app
 root = tk.Tk()
