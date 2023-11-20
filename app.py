@@ -47,12 +47,12 @@ class StoreApp:
         self.root.geometry(f"{screen_width}x{screen_height}")
 
         # Load the xlsx file, then store the value of each column in the "elements" list
-        self.file_path = r"C:\Users\Chinnu\Downloads\exampleapp/testdata.xlsx"
+        self.file_path = r"C:/Users/vyoma/Downloads/excelapp-main (1)/excelapp-main/testdata.xlsx"
 
         if os.path.exists(self.file_path):
             self.wb = load_workbook(filename=self.file_path)
             self.ws = self.wb['Sheet1']
-            self.storingfile_path = r"C:\Users\Chinnu\Downloads\exampleapp/storingfile.xlsx"
+            self.storingfile_path = r"C:/Users/vyoma/Downloads/excelapp-main (1)/excelapp-main/storingfile.xlsx"
 
             try:
                 self.wBook = load_workbook(self.storingfile_path)
@@ -312,9 +312,7 @@ class StoreApp:
         confirm_button = ttk.Button(remove_dialog, text="Confirm", command=lambda: self.handle_action("remove", entry_quantity.get()))
         confirm_button.pack(pady=20, anchor=tk.CENTER)   
 
-
     def display_material_status(self):
-
         # Create a new Tkinter window for displaying the table
         table_window = tk.Toplevel(self.root)
         table_window.title('Store Material Status')
@@ -322,6 +320,24 @@ class StoreApp:
         # Read Excel file and create DataFrame
         excel_data = pd.read_excel(self.file_path)  # Replace 'your_excel_file.xlsx' with your file name
         self.df = pd.DataFrame(excel_data)
+
+        # Create a frame to hold the search bar
+        search_frame = tk.Frame(table_window)
+        search_frame.pack(padx=10, pady=10, fill='x')
+
+        # Create and style the search label
+        search_label = ttk.Label(search_frame, text="Search Material:", font=('Arial', 10))
+        search_label.pack(side=tk.LEFT, padx=5)
+
+        # Create a Combobox for material selection with detailed descriptions
+        material_data = [desc for desc, _, _, _ in self.elements]
+        self.material_combobox = ttk.Combobox(search_frame, values=material_data, width=70)
+        self.material_combobox.pack(side=tk.LEFT, padx=5)
+        self.material_combobox.bind('<Return>', self.filter_materials)
+
+        # Create a search button
+        search_button = ttk.Button(search_frame, text="Search", command=self.filter_materials)
+        search_button.pack(side=tk.LEFT, padx=5)
 
         # Create Treeview widget
         self.tree = ttk.Treeview(table_window, columns=list(self.df.columns), show='headings')
@@ -344,6 +360,23 @@ class StoreApp:
         for i, row in self.df.iterrows():
             self.tree.insert('', 'end', values=list(row))
 
+    def filter_materials(self, event=None):
+        selected_material = self.material_combobox.get().split('(Code:', 1)[0].strip().lower()
+
+        if selected_material == '':
+            return
+
+        # Filter the DataFrame based on the selected material
+        filtered_df = self.df[self.df['Material Description'].str.lower().str.contains(selected_material)]
+        self.update_table(filtered_df)
+
+    def update_table(self, data):
+        # Clear existing Treeview data
+        self.tree.delete(*self.tree.get_children())
+
+        # Insert updated data into the Treeview
+        for i, row in data.iterrows():
+            self.tree.insert('', 'end', values=list(row))
 
     def display_logs(self):
 
