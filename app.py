@@ -108,10 +108,10 @@ class StoreApp:
     def load_data_file(self):
         if self.data_file_path and self.data_file_path.endswith(('.xlsx', '.xls')):
             self.wb = load_workbook(filename=self.data_file_path)
-            self.ws = self.wb.active
+            self.sheet = self.wb.active  # or specify a particular sheet by name: self.wb['SheetName']
             self.elements = []
 
-            for row in self.ws.iter_rows(min_row=2, max_row=227, min_col=1, max_col=4, values_only=True):
+            for row in self.sheet.iter_rows(min_row=2, max_row=227, min_col=1, max_col=4, values_only=True):
                 self.elements.append(row)
                 print(row)
         else:
@@ -456,8 +456,9 @@ class StoreApp:
     def display_logs(self):
 
         # Read Excel file and create DataFrame
-        excel_data = pd.read_excel(self.log_file_path)  # Replace 'your_excel_file.xlsx' with your file name
+        excel_data = pd.read_excel(self.log_file_path)
         self.df = pd.DataFrame(excel_data)
+
 
         # Create a new Tkinter window for displaying the table
         table_window = tk.Toplevel(self.root)
@@ -493,50 +494,57 @@ class StoreApp:
         if action == "add":
             # Find the material data
             material_data = [item for item in self.elements if item[0] == selected_material][0]
+            material_data = list(material_data)  # Convert tuple to list for modification
             material_code = material_data[1]
             current_quantity = material_data[3]
             new_quantity = current_quantity + int(quantity)
 
             # Add data to the storing file
-            self.sheet.append([current_time, selected_material, material_code, quantity, "Added"])
-            self.wBook.save(self.storingfile_path)
-            
-            # Update the main sheet with quantity change
-            main_sheet = self.wb.active
-            for row in range(2, main_sheet.max_row + 1):
-                material = main_sheet.cell(row=row, column=1).value
-                if material == selected_material:
-                    main_sheet.cell(row=row, column=4, value=new_quantity)
-                    print(f"Material Code: {material_code}, Current Quantity: {current_quantity}")
-                    print(f"Material Code: {material_code}, Updated Quantity: {new_quantity}")
-                    self.wb.save(self.file_path)
-                    break
+            if hasattr(self, 'sheet'):
+                self.sheet.append([current_time, selected_material, material_code, quantity, "Added"])
+                self.wb.save(self.log_file_path)
+
+                # Update the main sheet with quantity change
+                main_sheet = self.wb.active
+                for row in range(2, main_sheet.max_row + 1):
+                    material = main_sheet.cell(row=row, column=1).value
+                    if material == selected_material:
+                        main_sheet.cell(row=row, column=4, value=new_quantity)
+                        print(f"Material Code: {material_code}, Updated Quantity: {new_quantity}")
+                        self.wb.save(self.data_file_path)
+                        break
+
             # Update the elements list with the new quantity
             material_data[3] = new_quantity
             messagebox.showinfo("Data Submitted", f"Material: {selected_material}\nQuantity: {quantity}\nhas been added to the store.")
 
+
         elif action == "remove":
-            material_data = [item for item in self.elements if item[0] == selected_material][0]
-            material_code = material_data[1]
-            current_quantity = material_data[3]
-            new_quantity = current_quantity - int(quantity)
+                # Find the material data
+                material_data = [item for item in self.elements if item[0] == selected_material][0]
+                material_data = list(material_data)  # Convert tuple to list for modification
+                material_code = material_data[1]
+                current_quantity = material_data[3]
+                new_quantity = current_quantity - int(quantity)
 
-            self.sheet.append([current_time, selected_material, material_code, quantity, "Removed"])
-            self.wBook.save(self.storingfile_path)
+                # Add data to the storing file
+                if hasattr(self, 'sheet'):
+                    self.sheet.append([current_time, selected_material, material_code, quantity, "Removed"])
+                    self.wb.save(self.log_file_path)
 
-            # Update the main sheet with quantity change
-            main_sheet = self.wb.active
-            for row in range(2, main_sheet.max_row + 1):
-                material = main_sheet.cell(row=row, column=1).value
-                if material == selected_material:
-                    main_sheet.cell(row=row, column=4, value=new_quantity)
-                    print(f"Material Code: {material_code}, Updated Quantity: {new_quantity}")
-                    self.wb.save(self.file_path)
-                    break
-            
-            # Update the elements list with the new quantity
-            material_data[3] = new_quantity
-            messagebox.showinfo("Data Submitted", f"Material: {selected_material}\nQuantity: {quantity}\nhas been removed from store.")
+                    # Update the main sheet with quantity change
+                    main_sheet = self.wb.active
+                    for row in range(2, main_sheet.max_row + 1):
+                        material = main_sheet.cell(row=row, column=1).value
+                        if material == selected_material:
+                            main_sheet.cell(row=row, column=4, value=new_quantity)
+                            print(f"Material Code: {material_code}, Updated Quantity: {new_quantity}")
+                            self.wb.save(self.data_file_path)
+                            break
+
+                # Update the elements list with the new quantity
+                material_data[3] = new_quantity
+                messagebox.showinfo("Data Submitted", f"Material: {selected_material}\nQuantity: {quantity}\nhas been removed from store.")
 
 
 # Create the Tkinter window and run the app
