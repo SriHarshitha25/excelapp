@@ -62,6 +62,8 @@ class StoreApp:
                     self.data_file_path = data_file_path
                     self.log_file_path = log_file_path
                     self.show_bf1_dialogue()
+                    self.load_data_file()  # Initialize self.wb
+                    self.read_log_file()  # Initialize self.log_data
                     return  # Added to exit function after showing BF-1 dialogue
                 else:
                     print("Stored paths do not point to existing files.")
@@ -124,7 +126,7 @@ class StoreApp:
             print(self.log_data)
         else:
             print("Invalid log file format or no file selected.")
-
+            
     def display_logs(self, storingfile_path):
         if storingfile_path and storingfile_path.endswith(('.xlsx', '.xls')):
             excel_data = pd.read_excel(storingfile_path)
@@ -454,41 +456,40 @@ class StoreApp:
             self.tree.insert('', 'end', values=list(row))
 
     def display_logs(self):
-
         # Read Excel file and create DataFrame
-        excel_data = pd.read_excel(self.log_file_path)
-        self.df = pd.DataFrame(excel_data)
+        if self.log_file_path and self.log_file_path.endswith(('.xlsx', '.xls')):
+            excel_data = pd.read_excel(self.log_file_path)
+            self.df = pd.DataFrame(excel_data)
 
+            # Create a new Tkinter window for displaying the table
+            table_window = tk.Toplevel(self.root)
+            table_window.title('Requirements Logs')
 
-        # Create a new Tkinter window for displaying the table
-        table_window = tk.Toplevel(self.root)
-        table_window.title('Requirements Logs')
+            # Create Treeview widget
+            self.tree = ttk.Treeview(table_window, columns=list(self.df.columns), show='headings')
 
-        # Create Treeview widget
-        self.tree = ttk.Treeview(table_window, columns=list(self.df.columns), show='headings')
+            # Create Scrollbar
+            scrollbar = tk.Scrollbar(table_window, orient='vertical', command=self.tree.yview)
+            scrollbar.pack(side='right', fill='y')
 
-        # Create Scrollbar
-        scrollbar = tk.Scrollbar(table_window, orient='vertical', command=self.tree.yview)
-        scrollbar.pack(side='right', fill='y')
+            self.tree.configure(yscrollcommand=scrollbar.set)
+            self.tree.pack(expand=True, fill='both')
 
-        self.tree.configure(yscrollcommand=scrollbar.set)
-        self.tree.pack(expand=True, fill='both')
+            # Set Treeview column headings
+            for col in self.df.columns:
+                self.tree.heading(col, text=col)
 
-        # Set Treeview column headings
-        for col in self.df.columns:
-            self.tree.heading(col, text=col)
+            # Set width for the first column (change '1' to the actual column index if needed)
+            self.tree.column(self.df.columns[1], width=400)  # Change width as needed
 
-        # Set width for the first column (change '1' to the actual column index if needed)
-        self.tree.column(self.df.columns[1], width=400)  # Change width as needed
-
-        # Insert data into the Treeview
-        for i, row in self.df.iterrows():
-            self.tree.insert('', 'end', values=list(row))
+            # Insert data into the Treeview
+            for i, row in self.df.iterrows():
+                self.tree.insert('', 'end', values=list(row))
+        else:
+            print("Invalid log file format or no file selected.")
 
     def handle_action(self, action, quantity):
         selected_material = self.combodata.get()
-
-        # Get the current date and time
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         if action == "add":
@@ -499,12 +500,14 @@ class StoreApp:
             current_quantity = material_data[3]
             new_quantity = current_quantity + int(quantity)
 
-            # Add data to the storing file
-            if hasattr(self, 'sheet'):
-                self.sheet.append([current_time, selected_material, material_code, quantity, "Added"])
-                self.wb.save(self.log_file_path)
+            # Update the log file for removal
+            log_update = [current_time, selected_material, material_code, quantity, "Added"]
+            if hasattr(self, 'log_data'):
+                self.log_data = self.log_data.append(pd.Series(log_update, index=self.log_data.columns), ignore_index=True)
+                self.log_data.to_excel(self.log_file_path, index=False)
 
-                # Update the main sheet with quantity change
+            # Update the data file for removal
+            if hasattr(self, 'wb'):
                 main_sheet = self.wb.active
                 for row in range(2, main_sheet.max_row + 1):
                     material = main_sheet.cell(row=row, column=1).value
@@ -514,39 +517,34 @@ class StoreApp:
                         self.wb.save(self.data_file_path)
                         break
 
-            # Update the elements list with the new quantity
-            material_data[3] = new_quantity
-            messagebox.showinfo("Data Submitted", f"Material: {selected_material}\nQuantity: {quantity}\nhas been added to the store.")
-
+            messagebox.showinfo("Data Submitted", f"Material: {selected_material}\nQuantity: {quantity}\nhas been added from store.")
 
         elif action == "remove":
-                # Find the material data
-                material_data = [item for item in self.elements if item[0] == selected_material][0]
-                material_data = list(material_data)  # Convert tuple to list for modification
-                material_code = material_data[1]
-                current_quantity = material_data[3]
-                new_quantity = current_quantity - int(quantity)
+            # Find the material data
+            material_data = [item for item in self.elements if item[0] == selected_material][0]
+            material_data = list(material_data)  # Convert tuple to list for modification
+            material_code = material_data[1]
+            current_quantity = material_data[3]
+            new_quantity = current_quantity - int(quantity)
 
-                # Add data to the storing file
-                if hasattr(self, 'sheet'):
-                    self.sheet.append([current_time, selected_material, material_code, quantity, "Removed"])
-                    self.wb.save(self.log_file_path)
+            # Update the log file for removal
+            log_update = [current_time, selected_material, material_code, quantity, "Removed"]
+            if hasattr(self, 'log_data'):
+                self.log_data = self.log_data.append(pd.Series(log_update, index=self.log_data.columns), ignore_index=True)
+                self.log_data.to_excel(self.log_file_path, index=False)
 
-                    # Update the main sheet with quantity change
-                    main_sheet = self.wb.active
-                    for row in range(2, main_sheet.max_row + 1):
-                        material = main_sheet.cell(row=row, column=1).value
-                        if material == selected_material:
-                            main_sheet.cell(row=row, column=4, value=new_quantity)
-                            print(f"Material Code: {material_code}, Updated Quantity: {new_quantity}")
-                            self.wb.save(self.data_file_path)
-                            break
+            # Update the data file for removal
+            if hasattr(self, 'wb'):
+                main_sheet = self.wb.active
+                for row in range(2, main_sheet.max_row + 1):
+                    material = main_sheet.cell(row=row, column=1).value
+                    if material == selected_material:
+                        main_sheet.cell(row=row, column=4, value=new_quantity)
+                        print(f"Material Code: {material_code}, Updated Quantity: {new_quantity}")
+                        self.wb.save(self.data_file_path)
+                        break
 
-                # Update the elements list with the new quantity
-                material_data[3] = new_quantity
-                messagebox.showinfo("Data Submitted", f"Material: {selected_material}\nQuantity: {quantity}\nhas been removed from store.")
-
-
+            messagebox.showinfo("Data Submitted", f"Material: {selected_material}\nQuantity: {quantity}\nhas been removed from store.")
 # Create the Tkinter window and run the app
 root = tk.Tk()
 app = StoreApp(root)
