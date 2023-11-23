@@ -49,6 +49,11 @@ class StoreApp:
 
         self.load_stored_paths()
 
+        self.entry_added_in = None
+        self.entry_person_name = None
+        self.entry_used_for = None
+        self.entry_person_name_2 = None
+
     def load_stored_paths(self):
         try:
             with open('stored_paths.json', 'r') as file:
@@ -335,6 +340,19 @@ class StoreApp:
         qtytooltip_text = "Enter integer quantity"
         ToolTip(entry_quantity, qtytooltip_text)
 
+        frame_entries = tk.Frame(add_dialog)
+        frame_entries.pack(padx=10, pady=10, anchor=tk.W)
+
+        self.added_in_label = ttk.Label(frame_entries, text="Added In: ", font=('Arial', 10), width=12, anchor=tk.E)
+        self.added_in_label.grid(row=0, column=0, padx=10, pady=5)
+        self.entry_added_in = ttk.Entry(frame_entries, width=20)
+        self.entry_added_in.grid(row=0, column=1, padx=10, pady=5)
+
+        self.person_name_label = ttk.Label(frame_entries, text="Person Name: ", font=('Arial', 10), width=12, anchor=tk.E)
+        self.person_name_label.grid(row=1, column=0, padx=10, pady=10)
+        self.entry_person_name = ttk.Entry(frame_entries, width=20)
+        self.entry_person_name.grid(row=1, column=1, padx=10, pady=10)
+
         # Button to confirm adding materials
         confirm_button = ttk.Button(add_dialog, text="Confirm", command=lambda: self.handle_action("add", entry_quantity.get()))
         confirm_button.pack(pady=20, anchor=tk.CENTER)
@@ -386,6 +404,19 @@ class StoreApp:
         #calling the tooltip/button description
         qtytooltip_text = "Enter integer quantity"
         ToolTip(entry_quantity, qtytooltip_text)
+
+        frame_entries = tk.Frame(remove_dialog)
+        frame_entries.pack(padx=10, pady=10, anchor=tk.W)
+
+        self.used_for_label = ttk.Label(frame_entries, text="Used For: ", font=('Arial', 10), width=12, anchor=tk.E)
+        self.used_for_label.grid(row=0, column=0, padx=10, pady=5)
+        self.entry_used_for = ttk.Entry(frame_entries, width=30)
+        self.entry_used_for.grid(row=0, column=1, padx=10, pady=5)
+
+        self.person_name_label = ttk.Label(frame_entries, text="Person Name: ", font=('Arial', 10), width=12, anchor=tk.E)
+        self.person_name_label.grid(row=1, column=0, padx=10, pady=5)
+        self.entry_person_name = ttk.Entry(frame_entries, width=40)
+        self.entry_person_name.grid(row=1, column=1, padx=10, pady=5)
 
         # Button to confirm removing materials
         confirm_button = ttk.Button(remove_dialog, text="Confirm", command=lambda: self.handle_action("remove", entry_quantity.get()))
@@ -468,7 +499,7 @@ class StoreApp:
             table_window.title('Requirements Logs')
 
             # Create Treeview widget
-            self.tree = ttk.Treeview(table_window, columns=['Timestamp', 'Material', 'Material Code', 'Quantity', 'Action'], show='headings')
+            self.tree = ttk.Treeview(table_window, columns=['Timestamp', 'Material', 'Material Code', 'Quantity', 'Action', 'Location', 'Person Name'], show='headings')
 
             # Create Scrollbar
             scrollbar = tk.Scrollbar(table_window, orient='vertical', command=self.tree.yview)
@@ -483,6 +514,8 @@ class StoreApp:
             self.tree.heading('Material Code', text='Material Code')
             self.tree.heading('Quantity', text='Quantity')
             self.tree.heading('Action', text='Action')
+            self.tree.heading('Location', text='Location')
+            self.tree.heading('Person Name', text='Person Name')
 
             # Insert data into the Treeview
             for i, row in self.df.iterrows():
@@ -491,8 +524,11 @@ class StoreApp:
                 material_code = int(row['Material Code'])
                 quantity = int(row['Quantity'])
                 action = row['Action']
+                location= row['Location']
+                person_name = row['Person Name']
 
-                self.tree.insert('','end', values=[timestamp, material, material_code, quantity, action])
+
+                self.tree.insert('','end', values=[timestamp, material, material_code, quantity, action, location, person_name])
 
 
         else:
@@ -508,12 +544,17 @@ class StoreApp:
             current_quantity = material_data[3]
             new_quantity = current_quantity + int(quantity)
 
+            added_in = self.entry_added_in.get()
+            person_name = self.entry_person_name.get()
+
             log_update = {
                 "Timestamp": current_time,
                 "Material": selected_material,
                 "Material Code": material_code,
                 "Quantity": quantity,
-                "Action": "Added"
+                "Action": "Added",
+                "Location": added_in,
+                "Person Name": person_name
             }
             if hasattr(self, 'log_data'):
                 self.log_data = pd.concat([self.log_data, pd.DataFrame([log_update])], ignore_index=True)
@@ -538,12 +579,17 @@ class StoreApp:
             current_quantity = material_data[3]
             new_quantity = current_quantity - int(quantity)
 
+            used_for = self.entry_used_for.get()
+            person_name_2 = self.entry_person_name_2.get()
+
             log_update = {
                 "Timestamp": current_time,
                 "Material": selected_material,
                 "Material Code": material_code,
                 "Quantity": quantity,
-                "Action": "Removed"
+                "Action": "Removed",
+                "Location": used_for,
+                "Person Name": person_name_2
             }
             if hasattr(self, 'log_data'):
                 self.log_data = pd.concat([self.log_data, pd.DataFrame([log_update])], ignore_index=True)
